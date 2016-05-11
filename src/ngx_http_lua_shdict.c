@@ -1345,15 +1345,32 @@ ngx_http_lua_shdict_incr(lua_State *L)
     u_char                      *p;
     ngx_shm_zone_t              *zone;
     double                       value;
+    lua_Number                   exptime = -1;
+                         /* indicates whether to set the entries
+                          * exptime property, <0 meaning do not set */
+    ngx_time_t                  *tp;
 
     n = lua_gettop(L);
 
-    if (n != 3) {
-        return luaL_error(L, "expecting 3 arguments, but only seen %d", n);
+    if (n < 3) {
+        return luaL_error(L, "expecting at least 3 arguments, but only seen %d", n);
+    }
+    
+    if (n > 4) {
+        return luaL_error(L, "expecting no more than 4 arguments, but %d seen", n);
     }
 
     if (lua_type(L, 1) != LUA_TTABLE) {
         return luaL_error(L, "bad \"zone\" argument");
+    }
+	
+    if (n >= 4) {
+        if (!lua_isnil(L, 4)) {
+            exptime = luaL_checknumber(L, 4);
+            if (exptime < 0) {
+                return luaL_error(L, "bad \"exptime\" argument");
+            }
+        }
     }
 
     zone = ngx_http_lua_shdict_get_zone(L, 1);
@@ -1416,6 +1433,18 @@ ngx_http_lua_shdict_incr(lua_State *L)
         lua_pushnil(L);
         lua_pushliteral(L, "not a number");
         return 2;
+    }
+
+    if (exptime > 0) {
+        dd("setting expire time to %d", exptime);
+
+        tp = ngx_timeofday();
+        sd->expires = (uint64_t)tp->sec * 1000 + tp->msec
+            + (uint64_t)(exptime * 1000);
+
+    } else if (exptime == 0) {
+        dd("setting key to never expire");
+        sd->expires = 0;
     }
 
     ngx_queue_remove(&sd->queue);
@@ -1962,7 +1991,7 @@ ngx_http_lua_ffi_shdict_get(ngx_shm_zone_t *zone, u_char *key,
 
 int
 ngx_http_lua_ffi_shdict_incr(ngx_shm_zone_t *zone, u_char *key,
-    size_t key_len, double *value, char **err)
+    size_t key_len, double *value, int exptime, char **err)
 {
     uint32_t                     hash;
     ngx_int_t                    rc;
@@ -1970,6 +1999,7 @@ ngx_http_lua_ffi_shdict_incr(ngx_shm_zone_t *zone, u_char *key,
     ngx_http_lua_shdict_node_t  *sd;
     double                       num;
     u_char                      *p;
+    ngx_time_t                  *tp;
 
     ctx = zone->data;
     hash = ngx_crc32_short(key, key_len);
@@ -2010,6 +2040,18 @@ ngx_http_lua_ffi_shdict_incr(ngx_shm_zone_t *zone, u_char *key,
     num += *value;
 
     ngx_memcpy(p, (double *) &num, sizeof(double));
+
+    if (exptime > 0) {
+        dd("setting expire time to %d", exptime);
+
+        tp = ngx_timeofday();
+        sd->expires = (uint64_t)tp->sec * 1000 + tp->msec
+            + (uint64_t)(exptime * 1000);
+
+    } else if (exptime == 0) {
+        dd("setting key to never expire");
+        sd->expires = 0;
+    }
 
     ngx_shmtx_unlock(&ctx->shpool->mutex);
 
