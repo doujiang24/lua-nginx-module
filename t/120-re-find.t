@@ -973,3 +973,21 @@ content_by_lua(nginx.conf:45):4: Changing jit stack size is not allowed when reg
 --- no_error_log
 [error]
 
+
+
+=== TEST 34: passing unknown options to ngx.re.opt throws an error
+--- config
+    location /re {
+        content_by_lua '
+            local status, err = pcall(function() ngx.re.opt("foo", 123) end)
+            ngx.say(err)
+        ';
+    }
+--- request
+    GET /re
+--- response_body
+content_by_lua(nginx.conf:43):2: unrecognized option name for ngx.re.opt
+--- no_error_log
+[error]
+
+
