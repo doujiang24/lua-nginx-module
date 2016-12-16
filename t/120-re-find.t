@@ -9,7 +9,7 @@ use Test::Nginx::Socket::Lua;
 
 repeat_each(2);
 
-plan tests => repeat_each() * (blocks() * 3 + 1);
+plan tests => repeat_each() * (blocks() * 3 + 2);
 
 #no_diff();
 no_long_string();
@@ -960,11 +960,17 @@ to: 1563
 --- config
     location /re {
         content_by_lua_block {
+            local function set_opt()
+                return ngx.re.opt("jit_stack_size", 128 * 1024)
+            end
+            local ok, err = pcall(set_opt)
+            if not ok then
+                ngx.log(ngx.INFO, err)
+            end
             local s = "hello, 1234"
             local from, to = ngx.re.find(s, "(hello world)|([0-9])", "jo")
             ngx.say("from: ", from)
             ngx.say("to: ", to)
-            ngx.re.opt("jit_stack_size", 128 * 1024)
         }
     }
 --- request
@@ -974,10 +980,12 @@ from: 8
 to: 8
 
 --- grep_error_log eval
-Changing jit stack size is not allowed when some regexs have already been compiled and cached
+qr/Changing jit stack size is not allowed when some regexs have already been compiled and cached/
 
 --- grep_error_log_out eval
 ["", "Changing jit stack size is not allowed when some regexs have already been compiled and cached\n"]
+--- no_error_log
+[error]
 
 
 
