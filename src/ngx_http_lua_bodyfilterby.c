@@ -86,12 +86,20 @@ ngx_int_t
 ngx_http_lua_body_filter_by_chunk(lua_State *L, ngx_http_request_t *r,
     ngx_chain_t *in)
 {
+    int              old_exit_code = 0;
     ngx_int_t        rc;
     u_char          *err_msg;
     size_t           len;
 #if (NGX_PCRE)
     ngx_pool_t      *old_pool;
 #endif
+    ngx_http_lua_ctx_t          *ctx;
+
+    ctx = ngx_http_get_module_ctx(r, ngx_http_lua_module);
+
+    if (ctx->exited) {
+        old_exit_code = ctx->exit_code;
+    }
 
     dd("initialize nginx context in Lua VM, code chunk at stack top  sp = 1");
     ngx_http_lua_body_filter_by_lua_env(L, r, in);
@@ -113,6 +121,8 @@ ngx_http_lua_body_filter_by_chunk(lua_State *L, ngx_http_request_t *r,
     /* XXX: work-around to nginx regex subsystem */
     ngx_http_lua_pcre_malloc_done(old_pool);
 #endif
+
+    dd("rc == %d", (int) rc);
 
     if (rc != 0) {
 
@@ -139,6 +149,10 @@ ngx_http_lua_body_filter_by_chunk(lua_State *L, ngx_http_request_t *r,
     dd("got return value: %d", (int) rc);
 
     lua_settop(L, 0);
+
+    if (ctx->exited && ctx->exit_code != old_exit_code) {
+        return NGX_ERROR;
+    }
 
     if (rc == NGX_ERROR || rc >= NGX_HTTP_SPECIAL_RESPONSE) {
         return NGX_ERROR;
@@ -169,15 +183,9 @@ ngx_http_lua_body_filter_inline(ngx_http_request_t *r, ngx_chain_t *in)
         return NGX_ERROR;
     }
 
-    rc = ngx_http_lua_body_filter_by_chunk(L, r, in);
+    dd("calling body filter by chunk");
 
-    dd("body filter by chunk returns %d", (int) rc);
-
-    if (rc != NGX_OK) {
-        return NGX_ERROR;
-    }
-
-    return NGX_OK;
+    return ngx_http_lua_body_filter_by_chunk(L, r, in);
 }
 
 
@@ -218,13 +226,7 @@ ngx_http_lua_body_filter_file(ngx_http_request_t *r, ngx_chain_t *in)
     /*  make sure we have a valid code chunk */
     ngx_http_lua_assert(lua_isfunction(L, -1));
 
-    rc = ngx_http_lua_body_filter_by_chunk(L, r, in);
-
-    if (rc != NGX_OK) {
-        return NGX_ERROR;
-    }
-
-    return NGX_OK;
+    return ngx_http_lua_body_filter_by_chunk(L, r, in);
 }
 
 

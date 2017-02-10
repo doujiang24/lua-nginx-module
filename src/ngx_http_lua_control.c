@@ -319,6 +319,7 @@ ngx_http_lua_ngx_exit(lua_State *L)
                                | NGX_HTTP_LUA_CONTEXT_CONTENT
                                | NGX_HTTP_LUA_CONTEXT_TIMER
                                | NGX_HTTP_LUA_CONTEXT_HEADER_FILTER
+                               | NGX_HTTP_LUA_CONTEXT_BODY_FILTER
                                | NGX_HTTP_LUA_CONTEXT_BALANCER
                                | NGX_HTTP_LUA_CONTEXT_SSL_CERT
                                | NGX_HTTP_LUA_CONTEXT_SSL_SESS_STORE
@@ -385,6 +386,7 @@ ngx_http_lua_ngx_exit(lua_State *L)
                    "lua exit with code %i", ctx->exit_code);
 
     if (ctx->context & (NGX_HTTP_LUA_CONTEXT_HEADER_FILTER
+                        | NGX_HTTP_LUA_CONTEXT_BODY_FILTER
                         | NGX_HTTP_LUA_CONTEXT_BALANCER))
     {
         return 0;
@@ -470,6 +472,7 @@ ngx_http_lua_ffi_exit(ngx_http_request_t *r, int status, u_char *err,
                                        | NGX_HTTP_LUA_CONTEXT_CONTENT
                                        | NGX_HTTP_LUA_CONTEXT_TIMER
                                        | NGX_HTTP_LUA_CONTEXT_HEADER_FILTER
+                                       | NGX_HTTP_LUA_CONTEXT_BODY_FILTER
                                        | NGX_HTTP_LUA_CONTEXT_BALANCER
                                        | NGX_HTTP_LUA_CONTEXT_SSL_CERT
                                        | NGX_HTTP_LUA_CONTEXT_SSL_SESS_STORE
@@ -541,6 +544,7 @@ ngx_http_lua_ffi_exit(ngx_http_request_t *r, int status, u_char *err,
                    "lua exit with code %i", ctx->exit_code);
 
     if (ctx->context & (NGX_HTTP_LUA_CONTEXT_HEADER_FILTER
+                        | NGX_HTTP_LUA_CONTEXT_BODY_FILTER
                         | NGX_HTTP_LUA_CONTEXT_BALANCER))
     {
         return NGX_DONE;
