@@ -1420,8 +1420,8 @@ This hook is often used to create per-worker reoccurring timers (via the [ngx.ti
          end
      end
 
-     local ok, err = new_timer(delay, check)
-     if not ok then
+     local hdl, err = new_timer(delay, check)
+     if not hdl then
          log(ERR, "failed to create timer: ", err)
          return
      end
@@ -7518,7 +7518,7 @@ See also [lua_check_client_abort](#lua_check_client_abort).
 
 ngx.timer.at
 ------------
-**syntax:** *ok, err = ngx.timer.at(delay, callback, user_arg1, user_arg2, ...)*
+**syntax:** *hdl, err = ngx.timer.at(delay, callback, user_arg1, user_arg2, ...)*
 
 **context:** *init_worker_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
 
@@ -7544,7 +7544,7 @@ Premature timer expiration happens when the Nginx worker process is
 trying to shut down, as in an Nginx configuration reload triggered by
 the `HUP` signal or in an Nginx server shutdown. When the Nginx worker
 is trying to shut down, one can no longer call `ngx.timer.at` to
-create new timers with nonzero delays and in that case `ngx.timer.at` will return `nil` and
+create new timers with nonzero delays and in that case `ngx.timer.at` will return a "conditional false" value and
 a string describing the error, that is, "process exiting".
 
 Starting from the `v0.9.3` release, it is allowed to create zero-delay timers even when the Nginx worker process starts shutting down.
@@ -7644,7 +7644,7 @@ This API was first introduced in the `v0.8.0` release.
 
 ngx.timer.every
 ---------------
-**syntax:** *ok, err = ngx.timer.every(delay, callback, user_arg1, user_arg2, ...)*
+**syntax:** *hdl, err = ngx.timer.every(delay, callback, user_arg1, user_arg2, ...)*
 
 **context:** *init_worker_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;*
 
@@ -7653,9 +7653,11 @@ Similar to the [ngx.timer.at](#ngxtimerat) API, but
 1. `delay` *cannot* be zero,
 1. timer will be created every `delay` seconds until the current Nginx worker process starts exiting.
 
+When success, returns a "conditional true" value (but not a `true`). Otherwise, returns a "conditional false" value and a string describing the error.
+
 This API also respect the [lua_max_pending_timers](#lua_max_pending_timers) and [lua_max_running_timers](#lua_max_running_timers).
 
-This API was first introduced in the `v0.x.x` release.
+This API was first introduced in the `v0.10.9` release.
 
 [Back to TOC](#nginx-api-for-lua)
 

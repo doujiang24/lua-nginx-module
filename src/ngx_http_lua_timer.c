@@ -21,12 +21,6 @@ typedef struct {
     void        **srv_conf;
     void        **loc_conf;
 
-    /* event ident must be after 3 words (i.e. 3 pointers' size) as in
-     * ngx_connection_t. and we use the Lua coroutine reference number as
-     * the event ident */
-    int           co_ref;
-    unsigned      delay:31;
-    unsigned      premature:1;
     lua_State    *co;
 
     ngx_pool_t   *pool;
@@ -37,6 +31,9 @@ typedef struct {
     ngx_http_lua_main_conf_t          *lmcf;
     ngx_http_lua_vm_state_t           *vm_state;
 
+    int           co_ref;
+    unsigned      delay:31;
+    unsigned      premature:1;
 } ngx_http_lua_timer_ctx_t;
 
 
