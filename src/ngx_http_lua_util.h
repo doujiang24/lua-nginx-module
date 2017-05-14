@@ -292,6 +292,7 @@ ngx_http_lua_create_ctx(ngx_http_request_t *r)
 
         L = ngx_http_lua_init_vm(lmcf->lua, lmcf->cycle, r->pool, lmcf,
                                  r->connection->log, &cln);
+        dd("new init vm: %p", L);
         if (L == NULL) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
                           "failed to initialize Lua VM");

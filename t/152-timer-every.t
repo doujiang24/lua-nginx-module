@@ -6,7 +6,7 @@ use Test::Nginx::Socket::Lua;
 #workers(2);
 #log_level('warn');
 
-repeat_each(2);
+repeat_each(1);
 
 plan tests => repeat_each() * (blocks() * 7 + 2);
 
@@ -342,6 +342,7 @@ lua_max_running_timers are not enough
 
 
 === TEST 9: lua_code_cache off
+--- ONLY
 --- http_config
     lua_code_cache off;
 --- config
@@ -352,7 +353,7 @@ lua_max_running_timers are not enough
                 -- do nothing
             end
 
-            local ok, err = ngx.timer.every(0.01, f)
+            local ok, err = ngx.timer.at(1, f)
             if not ok then
                 ngx.say("failed to set timer: ", err)
                 return
