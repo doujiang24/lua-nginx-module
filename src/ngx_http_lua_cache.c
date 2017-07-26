@@ -35,9 +35,6 @@ static ngx_int_t
 ngx_http_lua_cache_load_code(ngx_log_t *log, lua_State *L,
     const char *key)
 {
-    int          rc;
-    u_char      *err;
-
     /*  get code cache table */
     lua_pushlightuserdata(L, &ngx_http_lua_code_cache_key);
     lua_rawget(L, LUA_REGISTRYINDEX);    /*  sp++ */
@@ -52,27 +49,8 @@ ngx_http_lua_cache_load_code(ngx_log_t *log, lua_State *L,
     lua_getfield(L, -1, key);    /*  sp++ */
 
     if (lua_isfunction(L, -1)) {
-        /*  call closure factory to gen new closure */
-        rc = lua_pcall(L, 0, 1, 0);
-        if (rc == 0) {
-            /*  remove cache table from stack, leave code chunk at
-             *  top of stack */
-            lua_remove(L, -2);   /*  sp-- */
-            return NGX_OK;
-        }
-
-        if (lua_isstring(L, -1)) {
-            err = (u_char *) lua_tostring(L, -1);
-
-        } else {
-            err = (u_char *) "unknown error";
-        }
-
-        ngx_log_error(NGX_LOG_ERR, log, 0,
-                      "lua: failed to run factory at key \"%s\": %s",
-                      key, err);
-        lua_pop(L, 2);
-        return NGX_ERROR;
+        lua_remove(L, -2);   /*  sp-- */
+        return NGX_OK;
     }
 
     dd("Value associated with given key in code cache table is not code "
@@ -104,6 +82,13 @@ ngx_http_lua_cache_store_code(lua_State *L, const char *key)
 {
     int rc;
 
+    /*  call closure factory to generate new closure */
+    rc = lua_pcall(L, 0, 1, 0);
+    if (rc != 0) {
+        dd("Error: failed to call closure factory!!");
+        return NGX_ERROR;
+    }
+
     /*  get code cache table */
     lua_pushlightuserdata(L, &ngx_http_lua_code_cache_key);
     lua_rawget(L, LUA_REGISTRYINDEX);
@@ -120,13 +105,6 @@ ngx_http_lua_cache_store_code(lua_State *L, const char *key)
 
     /*  remove cache table, leave closure factory at top of stack */
     lua_pop(L, 1); /* closure */
-
-    /*  call closure factory to generate new closure */
-    rc = lua_pcall(L, 0, 1, 0);
-    if (rc != 0) {
-        dd("Error: failed to call closure factory!!");
-        return NGX_ERROR;
-    }
 
     return NGX_OK;
 }
